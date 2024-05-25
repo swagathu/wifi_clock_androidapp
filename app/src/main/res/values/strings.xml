@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">My Application</string>
+    <string name="temp_FirstButton_str1">Start Config</string>
+    <string name="heading_wifi_clock_str">WiFi Clock</string>
+    <string name="heading">Heading</string>
+    <string name="view_1_desc">This should be welcom screen\n</string>
+</resources>
