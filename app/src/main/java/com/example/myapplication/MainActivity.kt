@@ -26,7 +26,7 @@ class MainActivity : ComponentActivity() {
         instance = this
         setContentView(R.layout.activity_main)
         setContent{
-//            AnimatedTextandHeading(this,"Start Now!")
+            AnimatedTextandHeading(this,"Start Now!")
         }
     }
 }
