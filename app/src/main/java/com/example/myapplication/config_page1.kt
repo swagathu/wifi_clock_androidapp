@@ -133,6 +133,9 @@ fun CheckPermissionAndStart(context: Context){
                 composable("details",enterTransition = null, exitTransition = null,popExitTransition = null,popEnterTransition = null) {
                     DetailsScreen(navController, context, wifiPerm, locationPerm)
                 }
+                composable("deviceinfo",enterTransition = null, exitTransition = null,popExitTransition = null,popEnterTransition = null) {
+                    DeviceInfo_Page(navController, context, wifiPerm, locationPerm)
+                }
             }
         }
         }

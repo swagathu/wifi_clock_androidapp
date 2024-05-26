@@ -71,7 +71,6 @@ fun MainScreen(navController: NavController, context: Context, wifiPerm: Boolean
     var buttonEnabled by remember { mutableStateOf(true) }
     var resultText by remember { mutableStateOf("") }
     var statusText by remember { mutableStateOf("Search the Device") }
-    var gotResult by remember { mutableStateOf(false) }
 
     MaterialTheme(colorScheme = colors) {
         val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
@@ -158,15 +157,15 @@ fun MainScreen(navController: NavController, context: Context, wifiPerm: Boolean
                                                 statusText = "Enter valid IP"
                                             } else {
                                                 statusText = "Searching..."
-                                                readDeviceInfo(ipAddress, 65432) { result ->
+                                                readDeviceInfo(ipAddress, 80) { result ->
                                                     if (result.startsWith("Error")) {
                                                         statusText = "Connection failed"
                                                         buttonEnabled = true
                                                     } else {
                                                         statusText = "Connection successful"
                                                         resultText = result
+                                                        Log.d("MainScreen", resultText)
                                                         navController.navigate("deviceInfo")
-                                                        gotResult = true
                                                     }
                                                 }
                                             }
@@ -176,9 +175,6 @@ fun MainScreen(navController: NavController, context: Context, wifiPerm: Boolean
                                         shape = RoundedCornerShape(10.dp)
                                     ) {
                                         Text(statusText, color = Color.Red.takeIf { statusText.contains("valid IP") } ?: MaterialTheme.colorScheme.inverseOnSurface, fontWeight = FontWeight.ExtraBold)
-                                        if (gotResult) {
-                                            DeviceInfo_Page(navController = navController,context = context,wifiPerm = wifiPerm,locationPerm = locationPerm)
-                                        }
                                     }
                                 }
                             }

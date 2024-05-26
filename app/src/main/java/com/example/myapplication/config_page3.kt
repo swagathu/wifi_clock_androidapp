@@ -24,9 +24,14 @@ import kotlinx.coroutines.launch
 import java.net.Socket
 import kotlinx.coroutines.*
 import java.io.BufferedReader
+import java.io.BufferedWriter
 import java.io.InputStreamReader
 import java.io.OutputStreamWriter
 import java.net.InetSocketAddress
+import java.net.SocketException
+import java.nio.charset.Charset
+import java.util.Scanner
+
 @OptIn(DelicateCoroutinesApi::class)
 fun readDeviceInfo(ipAddress: String, port: Int, onResult: (String) -> Unit) {
     GlobalScope.launch(Dispatchers.Main) {
@@ -42,35 +47,38 @@ class MyCoroutineTask {
         private fun getSocket(ipAddress: String, port: Int): Socket {
             val socket = Socket()
             val address = InetSocketAddress(ipAddress, port)
-            socket.connect(address, 10000)  // 5 seconds connect timeout
-            socket.soTimeout = 5000  // 5 seconds read timeout
+            socket.connect(address, 10000)  // 10 seconds connect timeout
+            socket.soTimeout = 10000  // 10 seconds read timeout
             return socket
         }
 
         fun writeToSocket(ipAddress: String, port: Int, message: String): String {
             return try {
                 val socket = getSocket(ipAddress, port)
-                socket.use {
-                    // Send the message
-                    it.getOutputStream().use { outputStream ->
-                        OutputStreamWriter(outputStream).use { writer ->
-                            writer.write(message)
-                            writer.flush()
-                        }
-                    }
+                val writer = BufferedWriter(OutputStreamWriter(socket.getOutputStream(), "ASCII"))
+                val reader = Scanner(socket.getInputStream(), "ASCII")
+                writer.write(message)
+                writer.flush()
 
-                    // Read the response
-                    it.getInputStream().use { inputStream ->
-                        BufferedReader(InputStreamReader(inputStream)).use { reader ->
-                            reader.readLine() ?: "No response"
-                        }
+                var result = ""
+                while (reader.hasNextLine()) {
+                    val line = reader.nextLine()
+                    if (line.isEmpty()) {
+                        break
                     }
+                    result += line
                 }
+
+                result
+            } catch (e: SocketException) {
+                // Handle SocketException (e.g., socket closed prematurely)
+                "SocketException: ${e.message}"
             } catch (e: Exception) {
-                e.printStackTrace()
+                // Handle other exceptions
                 "Error: ${e.message}"
             }
         }
+
     }
 }
 
@@ -82,38 +90,38 @@ fun DeviceInfo_Page(navController: NavController, context: Context, wifiPerm: Bo
         isSystemInDarkTheme() -> darkColors()
         else -> lightColors()
     }
-
-    MaterialTheme(colorScheme = colors) {
-        val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
-
-        ModalNavigationDrawer(
-            drawerState = drawerState,
-            drawerContent = {
-                ModalDrawerSheet {
-                    Text(
-                        "Other Options",
-                        style = TextStyle(
-                            fontSize = MaterialTheme.typography.titleLarge.fontSize,
-                            fontWeight = FontWeight.W100
-                        )
-                    )
-                    Divider()
-                    NavigationDrawerItem(
-                        label = { Text(text = "About", style = TextStyle(fontWeight = FontWeight.Bold)) },
-                        selected = false,
-                        onClick = {
-                            // Handle click
-                        }
-                    )
-                }
-            },
-        ) {
-            val coroutineScope = rememberCoroutineScope()
-            LaunchedEffect(Unit) {
-                // Your code that needs to be executed once when the composable is first composed
-            }
-
-            // Body content here
-        }
-    }
+    Text(text = "New Screen!")
+//    MaterialTheme(colorScheme = colors) {
+//        val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+//
+//        ModalNavigationDrawer(
+//            drawerState = drawerState,
+//            drawerContent = {
+//                ModalDrawerSheet {
+//                    Text(
+//                        "Other Options",
+//                        style = TextStyle(
+//                            fontSize = MaterialTheme.typography.titleLarge.fontSize,
+//                            fontWeight = FontWeight.W100
+//                        )
+//                    )
+//                    Divider()
+//                    NavigationDrawerItem(
+//                        label = { Text(text = "About", style = TextStyle(fontWeight = FontWeight.Bold)) },
+//                        selected = false,
+//                        onClick = {
+//                            // Handle click
+//                        }
+//                    )
+//                }
+//            },
+//        ) {
+////            val coroutineScope = rememberCoroutineScope()
+////            LaunchedEffect(Unit) {
+////                // Your code that needs to be executed once when the composable is first composed
+////            }
+//
+//            // Body content here
+//        }
+//    }
 }
