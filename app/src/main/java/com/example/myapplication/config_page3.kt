@@ -1,15 +1,20 @@
 package com.example.myapplication
 
+import android.app.Activity
 import android.content.Context
+import android.content.pm.PackageManager
+import android.location.Location
 import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -20,8 +25,10 @@ import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.NavigationDrawerItem
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -32,8 +39,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.core.app.ActivityCompat
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
+import com.google.android.gms.location.LocationServices
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
@@ -46,7 +55,6 @@ import java.net.InetSocketAddress
 import java.net.Socket
 import java.net.SocketException
 import java.util.Scanner
-
 
 fun parseJson(resultx: String?): Map<String, Any>? {
     val result: String = resultx ?: ""
@@ -77,6 +85,17 @@ fun parseJson(resultx: String?): Map<String, Any>? {
                 )
             }
             parsedData["networks"] = networksList
+        }
+
+        // Parse the location object
+        if (jsonObject.has("location")) {
+            val location = jsonObject.getJSONObject("location")
+            val longitude = location.getString("long")
+            val latitude = location.getString("lat")
+            parsedData["location"] = mapOf(
+                "longitude" to longitude,
+                "latitude" to latitude
+            )
         }
 
         parsedData
@@ -158,8 +177,55 @@ fun DeviceInfo_Page(
         isSystemInDarkTheme() -> darkColors()
         else -> lightColors()
     }
-    Log.d("deviceinfo composable", result?:"")
+    Log.d("deviceinfo composable", result ?: "")
+
+    // Parse JSON
     val parsedData = remember(result) { parseJson(result) }
+
+    // Mutable state for networks
+    var networks by remember { mutableStateOf<List<Map<String, String>>>(emptyList()) }
+    var newSSID by remember { mutableStateOf("") }
+    var newPassword by remember { mutableStateOf("") }
+
+    // Location state
+    var longitude by remember { mutableStateOf("") }
+    var latitude by remember { mutableStateOf("") }
+
+    // Initialize networks state
+    LaunchedEffect(parsedData) {
+        parsedData?.let {
+            networks = it["networks"] as List<Map<String, String>>
+            longitude = (it["location"] as? Map<*, *>)?.get("longitude") as? String ?: ""
+            latitude = (it["location"] as? Map<*, *>)?.get("latitude") as? String ?: ""
+        }
+    }
+
+    val fusedLocationClient = remember { LocationServices.getFusedLocationProviderClient(context) }
+    @Composable
+    fun fetchCurrentLocation() {
+        if (ActivityCompat.checkSelfPermission(context, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            // Permission is not granted, handle accordingly
+            fun requestLocationPermission(activity: Activity) {
+                ActivityCompat.requestPermissions(
+                    activity,
+                    arrayOf(android.Manifest.permission.ACCESS_FINE_LOCATION),
+                    REQUEST_CODE_LOCATION_PERMISSION
+                )
+            }
+            return
+        }
+
+        fusedLocationClient.lastLocation.addOnSuccessListener { location: Location? ->
+            location?.let {
+                longitude = it.longitude.toString()
+                latitude = it.latitude.toString()
+                Log.d("DeviceInfo_Page", "Current location: ${it.latitude}, ${it.longitude}")
+            } ?: run {
+                Log.d("DeviceInfo_Page", "No location retrieved.")
+            }
+        }
+    }
+    fetchCurrentLocation()
     MaterialTheme(colorScheme = colors) {
         val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
         ModalNavigationDrawer(
@@ -230,49 +296,125 @@ fun DeviceInfo_Page(
                             )
                         }
 
-                        Box(
-//                            modifier = Modifier
-//                                .fillMaxWidth()
-//                                .height(200.dp)
-//                                .background(
-//                                    color = MaterialTheme.colorScheme.primary,
-//                                    shape = RoundedCornerShape(10.dp)
-//                                )
-                        ) {
-                            Column()
-                            {
-//                        192.168.29.19
+                        // Scrollable network list
+                        LazyColumn(modifier = Modifier.fillMaxSize()) {
+                            item {
                                 Spacer(modifier = Modifier.height(20.dp))
-                                if (parsedData != null) {
-                                    val lastConnectedSSID =
-                                        parsedData["lastConnectedSSID"] as? String
-                                    val lastConnectedPassword =
-                                        parsedData["lastConnectedPassword"] as? String
-
-                                    if (lastConnectedSSID != null && lastConnectedPassword != null) {
-                                        Text("Last Connected:")
-                                        Text("SSID: $lastConnectedSSID")
-                                        Text("Password: $lastConnectedPassword")
-                                    }
-
-                                    // Display networks list
-                                    val networks =
-                                        parsedData["networks"] as? List<Map<String, String>>
-                                    if (networks != null) {
-                                        Text("Available Networks:")
-                                        networks.forEach { network ->
-                                            Text("SSID: ${network["ssid"]}, Password: ${network["password"]}")
+                                if (networks.isNotEmpty()) {
+                                    Text("Available Networks:")
+                                    networks.forEachIndexed { index, network ->
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            var password by remember { mutableStateOf(network["password"] ?: "") }
+                                            TextField(
+                                                value = password,
+                                                onValueChange = { password = it },
+                                                label = { Text("Password for ${network["ssid"]}") },
+                                                modifier = Modifier.weight(1f)
+                                            )
+                                            Button(onClick = {
+                                                    networks = networks.toMutableList().apply { removeAt(index) }
+                                                },
+                                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.onBackground),
+                                            ) {
+                                                Text("Remove")
+                                            }
                                         }
                                     }
                                 } else {
                                     Text("No data available")
                                 }
                             }
+
+                            item {
+                                Spacer(modifier = Modifier.height(20.dp))
+                                Text("Add Network:")
+                                TextField(
+                                    value = newSSID,
+                                    onValueChange = { newSSID = it },
+                                    label = { Text("SSID") },
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                                TextField(
+                                    value = newPassword,
+                                    onValueChange = { newPassword = it },
+                                    label = { Text("Password") },
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                                Button(onClick = {
+                                    if (networks.size < 20) {
+                                        networks = networks + mapOf("ssid" to newSSID, "password" to newPassword)
+                                        newSSID = ""
+                                        newPassword = ""
+                                    } else {
+                                        // Handle the case when the limit is reached (e.g., show a Toast)
+                                    }
+                                },
+                                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.onBackground)
+                                    ) {
+                                    Text("Add Network")
+                                }
+                            }
+
+                            item {
+                                Spacer(modifier = Modifier.height(20.dp))
+                                Text("Location Coordinates:")
+                                TextField(
+                                    value = longitude,
+                                    onValueChange = { longitude = it },
+                                    label = { Text("Longitude") },
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                                TextField(
+                                    value = latitude,
+                                    onValueChange = { latitude = it },
+                                    label = { Text("Latitude") },
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                                Button(onClick = {
+
+                                },
+                                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.onBackground),
+                                    ) {
+                                    Text("Use my device location")
+                                }
+                            }
+
+                            item {
+                                Spacer(modifier = Modifier.height(20.dp))
+                                // Save button
+                                Button(onClick = {
+                                    // Prepare data to send back
+                                    val updatedData = mapOf(
+                                        "lastConnected" to (parsedData?.get("lastConnected") ?: ""),
+                                        "networks" to networks,
+                                        "location" to mapOf("longitude" to longitude, "latitude" to latitude)
+
+                                    )
+                                    val ipAddress = "192.168.37.145"
+                                    val json = JSONObject(updatedData).toString()
+                                    readDeviceInfo(ipAddress, 80, query = "set_config", payload = json) { result ->
+                                        if (result == "" || result.startsWith("Error") || result.contains("SocketException") || result.contains("timeout", ignoreCase = true)) {
+//                                            buttonEnabled = true
+                                        } else {
+//                                            navController.navigate("result?result=${Uri.encode(result)}")
+                                        }
+                                    }
+                                    // Log updated data or send it to the server
+                                    Log.d("DeviceInfo_Page", "Updated data: $updatedData")
+                                },
+                                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.onBackground),
+                                    ) {
+                                    Text("Save Changes")
+                                }
+                            }
                         }
                     }
                 }
-
             }
         }
     }
 }
+
