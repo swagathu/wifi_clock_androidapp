@@ -21,9 +21,11 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.sp
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 
 const val REQUEST_CODE_LOCATION_PERMISSION = 1
 const val REQUEST_CODE_WIFI_PERMISSION = 123
@@ -132,8 +134,8 @@ fun CheckPermissionAndStart(context: Context){
                 composable("details",enterTransition = null, exitTransition = null,popExitTransition = null,popEnterTransition = null) {
                     DetailsScreen(navController, context, wifiPerm, locationPerm)
                 }
-                composable("result",enterTransition = null, exitTransition = null,popExitTransition = null,popEnterTransition = null) {
-                        navBackStackEntry ->
+                composable(route = "result?result={result}",arguments = listOf(navArgument("result") { type = NavType.StringType }),enterTransition = null, exitTransition = null,popExitTransition = null,popEnterTransition = null) {
+                    navBackStackEntry ->
                     val result = navBackStackEntry.arguments?.getString("result")
                     DeviceInfo_Page(navController, context, wifiPerm, locationPerm, result)
                 }

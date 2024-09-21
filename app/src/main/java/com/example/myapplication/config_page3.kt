@@ -1,6 +1,7 @@
 package com.example.myapplication
 
 import android.content.Context
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -49,7 +50,7 @@ import java.util.Scanner
 
 fun parseJson(resultx: String?): Map<String, Any>? {
     val result: String = resultx ?: ""
-
+    Log.d("json parse", result)
     return try {
         val jsonObject = JSONObject(result)
         val parsedData = mutableMapOf<String, Any>()
@@ -96,6 +97,7 @@ fun readDeviceInfo(ipAddress: String, port: Int, query: String, payload: String,
         val result = withContext(Dispatchers.IO) {
             MyCoroutineTask.writeToSocket(ipAddress, port, data)
         }
+        Log.d("recive", result)
         onResult(result)
     }
 }
@@ -141,7 +143,13 @@ class MyCoroutineTask {
 }
 
 @Composable
-fun DeviceInfo_Page(navController: NavController, context: Context, wifiPerm: Boolean, locationPerm: Boolean, result: String?) {
+fun DeviceInfo_Page(
+    navController: NavController,
+    context: Context,
+    wifiPerm: Boolean,
+    locationPerm: Boolean,
+    result: String?
+) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
     val coroutineScope = rememberCoroutineScope()
@@ -150,6 +158,7 @@ fun DeviceInfo_Page(navController: NavController, context: Context, wifiPerm: Bo
         isSystemInDarkTheme() -> darkColors()
         else -> lightColors()
     }
+    Log.d("deviceinfo composable", result?:"")
     val parsedData = remember(result) { parseJson(result) }
     MaterialTheme(colorScheme = colors) {
         val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)

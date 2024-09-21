@@ -3,6 +3,7 @@ package com.example.myapplication
 //import androidx.compose.foundation.layout.FlowRowScopeInstance.align
 import android.content.Context
 import android.content.res.Configuration
+import android.net.Uri
 import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -161,7 +162,7 @@ fun MainScreen(navController: NavController, context: Context, wifiPerm: Boolean
                                                         statusText = "Connection successful"
                                                         resultText = result
                                                         Log.d("MainScreen", resultText)
-                                                        navController.navigate("result")
+                                                        navController.navigate("result?result=${Uri.encode(result)}")
                                                     }
                                                 }
                                             }
