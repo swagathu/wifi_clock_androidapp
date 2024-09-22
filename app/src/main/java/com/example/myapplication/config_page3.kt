@@ -66,32 +66,20 @@ fun parseJson(resultx: String?): Map<String, Any>? {
         // Parse the lastConnected object
         if (jsonObject.has("lastConnected")) {
             val lastConnected = jsonObject.getJSONObject("lastConnected")
-
-            // Ensure that 'ssid' and 'password' are correctly extracted from the lastConnected object
-            parsedData["lastConnectedSSID"] = if (lastConnected.has("ssid")) {
-                lastConnected.getString("ssid")
-            } else {
-                "none"
-            }
-
-            parsedData["lastConnectedPassword"] = if (lastConnected.has("password")) {
-                lastConnected.getString("password")
-            } else {
-                "none"
-            }
+            parsedData["lastConnectedSSID"] = lastConnected.optString("ssid", "none")
+            parsedData["lastConnectedPassword"] = lastConnected.optString("password", "none")
         }
 
         // Parse the networks array
         if (jsonObject.has("networks")) {
             val networksArray = jsonObject.getJSONArray("networks")
             val networksList = mutableListOf<Map<String, String>>()
-
             for (i in 0 until networksArray.length()) {
                 val network = networksArray.getJSONObject(i)
                 networksList.add(
                     mapOf(
-                        "ssid" to network.getString("ssid"),
-                        "password" to network.getString("password")
+                        "ssid" to network.optString("ssid", "none"),
+                        "password" to network.optString("password", "none")
                     )
                 )
             }
@@ -101,11 +89,9 @@ fun parseJson(resultx: String?): Map<String, Any>? {
         // Parse the location object
         if (jsonObject.has("location")) {
             val location = jsonObject.getJSONObject("location")
-            val longitude = location.getString("long")
-            val latitude = location.getString("lat")
             parsedData["location"] = mapOf(
-                "longitude" to longitude,
-                "latitude" to latitude
+                "longitude" to location.optString("longitude", "none"),
+                "latitude" to location.optString("latitude", "none")
             )
         }
 
@@ -409,7 +395,7 @@ fun DeviceInfo_Page(
                                         "location" to mapOf("longitude" to longitude, "latitude" to latitude)
                                     )
                                     val ipAddress = "192.168.29.19"
-                                    val json = JSONObject(updatedData).toString() + "}"
+                                    val json = JSONObject(updatedData).toString()
                                     readDeviceInfo(ipAddress, 80, query = "set_config", payload = json) { result ->
                                         if (result == "" || result.startsWith("Error") || result.contains("SocketException") || result.contains("timeout", ignoreCase = true)) {
 //                                            buttonEnabled = true
