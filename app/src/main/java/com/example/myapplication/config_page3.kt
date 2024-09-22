@@ -66,8 +66,19 @@ fun parseJson(resultx: String?): Map<String, Any>? {
         // Parse the lastConnected object
         if (jsonObject.has("lastConnected")) {
             val lastConnected = jsonObject.getJSONObject("lastConnected")
-            parsedData["lastConnectedSSID"] = lastConnected.getString("ssid")
-            parsedData["lastConnectedPassword"] = lastConnected.getString("password")
+
+            // Ensure that 'ssid' and 'password' are correctly extracted from the lastConnected object
+            parsedData["lastConnectedSSID"] = if (lastConnected.has("ssid")) {
+                lastConnected.getString("ssid")
+            } else {
+                "none"
+            }
+
+            parsedData["lastConnectedPassword"] = if (lastConnected.has("password")) {
+                lastConnected.getString("password")
+            } else {
+                "none"
+            }
         }
 
         // Parse the networks array
@@ -387,14 +398,18 @@ fun DeviceInfo_Page(
                                 // Save button
                                 Button(onClick = {
                                     // Prepare data to send back
+                                    val lastConnectedSSID = parsedData?.get("lastConnectedSSID") as? String ?: ""
+                                    val lastConnectedPassword = parsedData?.get("lastConnectedPassword") as? String ?: ""
                                     val updatedData = mapOf(
-                                        "lastConnected" to (parsedData?.get("lastConnected") ?: ""),
+                                        "lastConnected" to mapOf(
+                                            "ssid" to lastConnectedSSID,
+                                            "password" to lastConnectedPassword
+                                        ),
                                         "networks" to networks,
                                         "location" to mapOf("longitude" to longitude, "latitude" to latitude)
-
                                     )
-                                    val ipAddress = "192.168.37.145"
-                                    val json = JSONObject(updatedData).toString()
+                                    val ipAddress = "192.168.29.19"
+                                    val json = JSONObject(updatedData).toString() + "}"
                                     readDeviceInfo(ipAddress, 80, query = "set_config", payload = json) { result ->
                                         if (result == "" || result.startsWith("Error") || result.contains("SocketException") || result.contains("timeout", ignoreCase = true)) {
 //                                            buttonEnabled = true
