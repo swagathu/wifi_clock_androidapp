@@ -49,7 +49,6 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import kotlinx.coroutines.launch
 
-
 @Composable
 fun isSystemInDarkTheme(): Boolean {
     val configuration = LocalConfiguration.current
@@ -58,13 +57,14 @@ fun isSystemInDarkTheme(): Boolean {
 
 @Composable
 fun MainScreen(navController: NavController, context: Context, wifiPerm: Boolean, locationPerm: Boolean) {
+    val sharedPreferences = context.getSharedPreferences("MyAppPrefs", Context.MODE_PRIVATE)
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
     val colors = if (isSystemInDarkTheme()) darkColors() else lightColors()
     val coroutineScope = rememberCoroutineScope()
 
     var showContent by remember { mutableStateOf(false) }
-    var ipAddress by remember { mutableStateOf("Enter IP") }
+    var ipAddress by remember { mutableStateOf(sharedPreferences.getString("saved_ip", "Enter IP") ?: "Enter IP") }
     var mainButtonClicked by remember { mutableStateOf(false) }
     var buttonEnabled by remember { mutableStateOf(true) }
     var resultText by remember { mutableStateOf("") }
@@ -156,6 +156,7 @@ fun MainScreen(navController: NavController, context: Context, wifiPerm: Boolean
                                                 statusText = "Enter valid IP"
                                             } else {
                                                 statusText = "Searching..."
+                                                deviceIP = ipAddress
                                                 readDeviceInfo(ipAddress, 80, query = "get_config", payload = "") { result ->
                                                     if (result == "" || result.startsWith("Error") || result.contains("SocketException") || result.contains("timeout", ignoreCase = true)) {
                                                         statusText = "Connection failed"
@@ -164,6 +165,7 @@ fun MainScreen(navController: NavController, context: Context, wifiPerm: Boolean
                                                         statusText = "Connection successful"
                                                         resultText = result
                                                         Log.d("MainScreen", resultText)
+                                                        sharedPreferences.edit().putString("saved_ip", ipAddress).apply()
                                                         navController.navigate("result?result=${Uri.encode(result)}")
                                                     }
                                                 }

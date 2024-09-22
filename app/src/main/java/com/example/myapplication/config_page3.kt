@@ -55,7 +55,7 @@ import java.net.InetSocketAddress
 import java.net.Socket
 import java.net.SocketException
 import java.util.Scanner
-
+var deviceIP: String = ""
 fun parseJson(resultx: String?): Map<String, Any>? {
     val result: String = resultx ?: ""
     Log.d("json parse", result)
@@ -410,9 +410,9 @@ fun DeviceInfo_Page(
                                         "networks" to networks,
                                         "location" to mapOf("longitude" to longitude, "latitude" to latitude)
                                     )
-                                    val ipAddress = "192.168.29.19"
                                     val json = JSONObject(updatedData).toString()
-                                    readDeviceInfo(ipAddress, 80, query = "set_config", payload = json) { result ->
+                                    Log.d("##########IP: ", deviceIP)
+                                    readDeviceInfo(deviceIP, 80, query = "set_config", payload = json) { result ->
                                         if (result == "" || result.startsWith("Error") || result.contains("SocketException") || result.contains("timeout", ignoreCase = true)) {
                                             save_changetext = "Could not Save, try again"
                                         } else {
