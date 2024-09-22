@@ -39,6 +39,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusEvent
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -132,7 +133,8 @@ fun MainScreen(navController: NavController, context: Context, wifiPerm: Boolean
                                         value = ipAddress,
                                         onValueChange = { newValue -> ipAddress = newValue },
                                         singleLine = true,
-                                        textStyle = TextStyle(color = Color.Gray, fontSize = 20.sp),
+                                        textStyle = TextStyle(color = MaterialTheme.colorScheme.inversePrimary, fontSize = 20.sp),
+                                        cursorBrush = SolidColor(MaterialTheme.colorScheme.inversePrimary),
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .padding(8.dp)

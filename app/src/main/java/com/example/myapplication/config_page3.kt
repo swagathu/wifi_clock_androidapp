@@ -198,6 +198,8 @@ fun DeviceInfo_Page(
     }
 
     val fusedLocationClient = remember { LocationServices.getFusedLocationProviderClient(context) }
+    var curLong: String = ""
+    var curLat: String = ""
     @Composable
     fun fetchCurrentLocation() {
         if (ActivityCompat.checkSelfPermission(context, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
@@ -214,8 +216,8 @@ fun DeviceInfo_Page(
 
         fusedLocationClient.lastLocation.addOnSuccessListener { location: Location? ->
             location?.let {
-                longitude = it.longitude.toString()
-                latitude = it.latitude.toString()
+                curLong = it.longitude.toString()
+                curLat = it.latitude.toString()
                 Log.d("DeviceInfo_Page", "Current location: ${it.latitude}, ${it.longitude}")
             } ?: run {
                 Log.d("DeviceInfo_Page", "No location retrieved.")
@@ -292,7 +294,9 @@ fun DeviceInfo_Page(
                                 )
                             )
                         }
-
+                        var save_changetext: String = "Save Changes"
+                        var NetitemCount = networks.size
+                        var buttonen: Boolean = false
                         // Scrollable network list
                         LazyColumn(modifier = Modifier.fillMaxSize()) {
                             item {
@@ -307,12 +311,18 @@ fun DeviceInfo_Page(
                                             var password by remember { mutableStateOf(network["password"] ?: "") }
                                             TextField(
                                                 value = password,
-                                                onValueChange = { password = it },
+                                                onValueChange = { password = it
+                                                    save_changetext = "Save Changes"
+                                                },
                                                 label = { Text("Password for ${network["ssid"]}") },
                                                 modifier = Modifier.weight(1f)
                                             )
                                             Button(onClick = {
                                                     networks = networks.toMutableList().apply { removeAt(index) }
+                                                    save_changetext= "Save Changes"
+                                                    if (networks.size <20) {
+                                                        buttonen = true
+                                                    }
                                                 },
                                                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.onBackground),
                                             ) {
@@ -345,8 +355,10 @@ fun DeviceInfo_Page(
                                         networks = networks + mapOf("ssid" to newSSID, "password" to newPassword)
                                         newSSID = ""
                                         newPassword = ""
+                                        save_changetext= "Save Changes"
+                                        buttonen = true
                                     } else {
-                                        // Handle the case when the limit is reached (e.g., show a Toast)
+                                        buttonen = false
                                     }
                                 },
                                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.onBackground)
@@ -366,19 +378,23 @@ fun DeviceInfo_Page(
                                 )
                                 TextField(
                                     value = latitude,
-                                    onValueChange = { latitude = it },
+                                    onValueChange = {
+                                        latitude = it
+
+                                                    },
                                     label = { Text("Latitude") },
                                     modifier = Modifier.fillMaxWidth()
                                 )
-                                Button(onClick = {
-
-                                },
+                                Button(
+                                    onClick = {
+                                        longitude = curLong
+                                        latitude = curLat
+                                    },
                                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.onBackground),
-                                    ) {
+                                ) {
                                     Text("Use my device location")
                                 }
                             }
-
                             item {
                                 Spacer(modifier = Modifier.height(20.dp))
                                 // Save button
@@ -398,9 +414,9 @@ fun DeviceInfo_Page(
                                     val json = JSONObject(updatedData).toString()
                                     readDeviceInfo(ipAddress, 80, query = "set_config", payload = json) { result ->
                                         if (result == "" || result.startsWith("Error") || result.contains("SocketException") || result.contains("timeout", ignoreCase = true)) {
-//                                            buttonEnabled = true
+                                            save_changetext = "Could not Save, try again"
                                         } else {
-//                                            navController.navigate("result?result=${Uri.encode(result)}")
+                                            save_changetext = "Success"
                                         }
                                     }
                                     // Log updated data or send it to the server
@@ -408,7 +424,7 @@ fun DeviceInfo_Page(
                                 },
                                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.onBackground),
                                     ) {
-                                    Text("Save Changes")
+                                    Text(save_changetext)
                                 }
                             }
                         }
